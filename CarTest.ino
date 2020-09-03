@@ -14,12 +14,17 @@ License: Remixing or Changing this Thing is allowed. Commercial use is not allow
 */
 
 #include <AFMotor.h>
+#include <Servo.h> 
 
 //initial motors pin
 AF_DCMotor motor1(1, MOTOR12_1KHZ);
 AF_DCMotor motor2(2, MOTOR12_1KHZ);
 AF_DCMotor motor3(3, MOTOR34_1KHZ);
 AF_DCMotor motor4(4, MOTOR34_1KHZ);
+
+// DC hobby servo
+Servo servo1;
+
 
 char command;
 
