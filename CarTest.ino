@@ -15,6 +15,7 @@ License: Remixing or Changing this Thing is allowed. Commercial use is not allow
 
 #include <AFMotor.h>
 #include <Servo.h> 
+#include <HCSR04.h>
 
 //initial motors pin
 AF_DCMotor motor1(1, MOTOR12_1KHZ);
@@ -25,6 +26,12 @@ AF_DCMotor motor4(4, MOTOR34_1KHZ);
 // DC hobby servo
 Servo servo1;
 
+// sonar pins
+#define TRIGGER_PIN A4
+#define ECHO_PIN A5
+
+// Sonar Sensor
+HCSR04 hc(TRIGGER_PIN, ECHO_PIN);
 
 char command;
 
