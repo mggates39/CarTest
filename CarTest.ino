@@ -35,6 +35,9 @@ HCSR04 hc(TRIGGER_PIN, ECHO_PIN);
 
 char command;
 
+// pre-define the command processor function
+void processCommand(char);
+
 void setup()
 {
   Serial.begin(9600);  //Set the baud rate to your Bluetooth module.
@@ -43,10 +46,15 @@ void setup()
 void loop(){
   if(Serial.available() > 0){
     command = Serial.read();
-    Stop(); //initialize with motors stoped
-    //Change pin mode only if new command is different from previous.
-    //Serial.println(command);
-    switch(command){
+    processCommand(command);
+  }
+}
+
+void processCommand(char newCommand) {
+
+  Stop(); //initialize with motors stoped
+  
+  switch(newCommand){
     case 'F':
       forward();
       break;
@@ -60,7 +68,7 @@ void loop(){
       right();
       break;
     }
-  }
+ 
 }
 
 void forward()
