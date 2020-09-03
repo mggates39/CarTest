@@ -16,6 +16,7 @@ License: Remixing or Changing this Thing is allowed. Commercial use is not allow
 #include <AFMotor.h>
 #include <Servo.h> 
 #include <HCSR04.h>
+#include "MyDelay.h"
 
 //initial motors pin
 AF_DCMotor motor1(1, MOTOR12_1KHZ);
@@ -33,6 +34,10 @@ Servo servo1;
 // Sonar Sensor
 HCSR04 hc(TRIGGER_PIN, ECHO_PIN);
 
+#define FAILOVER_TIME 300000
+
+myDelay blueToothFailTimer(FAILOVER_TIME);
+
 char command;
 
 // pre-define the command processor function
@@ -41,12 +46,20 @@ void processCommand(char);
 void setup()
 {
   Serial.begin(9600);  //Set the baud rate to your Bluetooth module.
+  blueToothFailTimer.start();
 }
 
-void loop(){
+void loop()
+{
+  if (blueToothFailTimer.update()) {
+    // no command in the time out period. go to sonar mode
+  }
+  
   if(Serial.available() > 0){
     command = Serial.read();
     processCommand(command);
+    // Restart the timer since we have a command
+    blueToothFailTimer.start();
   }
 }
 
