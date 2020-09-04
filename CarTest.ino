@@ -25,6 +25,7 @@ AF_DCMotor motor3(3, MOTOR34_1KHZ);
 AF_DCMotor motor4(4, MOTOR34_1KHZ);
 
 #define MAX_MOTOR_SPEED 255
+#define SLOW_MOTOR_SPEED 127
 #define MIN_MOTOR_SPEED 0
 
 // Servo Pins - pre-defined because of the L293D Motor Shield
@@ -41,6 +42,7 @@ Servo servo1;
 // Sonar Sensor
 HCSR04 hc(TRIGGER_PIN, ECHO_PIN);
 
+
 #define FAILOVER_TIME 300000
 
 myDelay blueToothFailTimer(FAILOVER_TIME);
@@ -48,6 +50,11 @@ myDelay blueToothFailTimer(FAILOVER_TIME);
 char command;
 
 int current_motor_speed;
+
+int servo_position;
+
+// Assume 180 degree servo with 90 front and center
+#define SERVO_FORWARD_POSITION 90
 
 // pre-define the command processor function
 void processCommand(char);
@@ -82,6 +89,16 @@ void loop()
     // Restart the timer since we have a command
     blueToothFailTimer.start();
   }
+
+  faceForward();
+  float distance = hc.dist(); // distance in centimeters
+  if (distance < 25) {
+    current_motor_speed = SLOW_MOTOR_SPEED;
+  } else if (distance < 5) {
+    Stop();
+  } else {
+    current_motor_speed = MAX_MOTOR_SPEED;
+  }
 }
 
 void processCommand(char newCommand) {
@@ -102,7 +119,14 @@ void processCommand(char newCommand) {
       right();
       break;
     }
- 
+}
+
+void faceForward()
+{
+  if (servo_position != SERVO_FORWARD_POSITION) {
+    servo1.write(SERVO_FORWARD_POSITION);
+    delay(15);
+  }
 }
 
 /**
