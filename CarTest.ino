@@ -54,10 +54,13 @@ int current_motor_speed;
 int servo_position;
 
 // Assume 180 degree servo with 90 front and center
+#define SERVO_MIN_POSITION 0
 #define SERVO_FORWARD_POSITION 90
+#define SERVO_MAX_POSITION 180
 
-// pre-define the command processor function
+// pre-define several functions
 void processCommand(char);
+void setServoPosition(int);
 
 void setup()
 {
@@ -69,6 +72,12 @@ void setup()
   servo1.attach(SERVO_1_PIN);
 
   current_motor_speed = MAX_MOTOR_SPEED;
+
+  // set unknown servo position
+  servo_position = -1;
+  setServoPosition(SERVO_MIN_POSITION);
+  setServoPosition(SERVO_MAX_POSITION);
+  faceForward();
    
 }
 
@@ -120,13 +129,17 @@ void processCommand(char newCommand) {
       break;
     }
 }
+void setServoPosition(int position) {
+  if (servo_position != position) {
+    servo1.write(position);
+    servo_position = position;
+    delay(15);
+  }
+}
 
 void faceForward()
 {
-  if (servo_position != SERVO_FORWARD_POSITION) {
-    servo1.write(SERVO_FORWARD_POSITION);
-    delay(15);
-  }
+  setServoPosition(SERVO_FORWARD_POSITION);
 }
 
 /**
