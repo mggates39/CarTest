@@ -42,7 +42,7 @@ Servo servo1;
 // Sonar Sensor
 HCSR04 hc(TRIGGER_PIN, ECHO_PIN);
 
-// Allow for 3 seconds (3000 milliseconds) 
+// Allow for 3 seconds (3000 milliseconds)
 // before taking over with sonar control
 #define FAILOVER_TIME 3000
 
@@ -63,9 +63,23 @@ bool sonar_mode = false;
 #define SERVO_FORWARD_POSITION 90
 #define SERVO_MAX_POSITION 180
 
+#define MAX_SCAN_STEPS  5
+#define FORWARD_SCAN_STEP 2
+int search_positions[MAX_SCAN_STEPS] = {SERVO_MIN_POSITION, // Far Left
+                                        SERVO_MIN_POSITION + (SERVO_FORWARD_POSITION / 2), // Mid Left
+                                        SERVO_FORWARD_POSITION, // Straight ahead
+                                        SERVO_FORWARD_POSITION + (SERVO_FORWARD_POSITION / 2), // Mid Right
+                                        SERVO_MAX_POSITION
+                                       }; // Far Right
+float search_range[MAX_SCAN_STEPS] = {0.0, 0.0, 0.0, 0.0, 0.0};
+int scan_step = 0;
+int scan_increment = 1;
+
+
 // pre-define several functions
 bool processCommand(char);
 void setServoPosition(int);
+void avoidCollision(float);
 
 void setup()
 {
@@ -75,7 +89,7 @@ void setup()
   blueToothFailTimer.stop();
   sonar_mode = false;
 
-  //initialize with motors stoped
+  //initialize with motors stopped
   Stop();
 
   // turn on servo
@@ -101,51 +115,131 @@ void loop()
     sonar_mode = true;
   }
 
-  if (Serial.available() > 0) {
-    // Get the command and process it
-    command = Serial.read();
+  if (sonar_mode == false) {
+    if (Serial.available() > 0) {
+      // Get the command and process it
+      command = Serial.read();
 
-    if (processCommand(command)) {
-      // Restart the timer since we have a
-      // command that is causing the car to move
-      blueToothFailTimer.start();
-    } else {
-      // The command stopped the vehicle
-      // do not allow sonar to take over
-      blueToothFailTimer.stop();
-      sonar_mode = false;
+      if (processCommand(command)) {
+        // Restart the timer since we have a
+        // command that is causing the car to move
+        blueToothFailTimer.start();
+      } else {
+        // The command stopped the vehicle
+        // do not allow sonar to take over
+        blueToothFailTimer.stop();
+        sonar_mode = false;
+      }
     }
+    testForCollisionOnBlueTooth();
+  } else {
+    scanAhead();
   }
 
-  avoidCollision();
-  
 }
 
-/**
- * If we start getting close to something, slow down
- * If we get Real close backup turn to the side and start moving
- * otherwise, speed back up.
- */
-void avoidCollision()
+void testForCollisionOnBlueTooth()
 {
   faceForward();
   float distance = hc.dist(); // distance in centimeters
-  
-  if (distance < 25) {
+
+  avoidCollision(distance);
+}
+
+/**
+ * If we are far away from something, go full speed
+   If we start getting close to something, slow down
+   If we get Real close backup turn to the side and start moving forward
+   otherwise, speed back up.
+*/
+void avoidCollision(float distance)
+{
+  if (distance >= 25.0) {
+    current_motor_speed = MAX_MOTOR_SPEED;
+  } else if (distance >= 5.0) {
     current_motor_speed = SLOW_MOTOR_SPEED;
-  } else if (distance < 5) {
+  } else {
     processCommand('B');
     delay(100);
     processCommand('R');
     delay(300);
     processCommand('F');
-  } else {
-    current_motor_speed = MAX_MOTOR_SPEED;
   }
 
 }
 
-bool processCommand(char newCommand) {
+void scanAhead()
+{
+  setServoPosition(search_positions[scan_step]);
+  search_range[scan_step] = hc.dist(); // distance in centimeters
+  scan_step += scan_increment;
+  if (scan_step == MAX_SCAN_STEPS) {
+    scan_increment = -1;
+    scan_step += scan_increment;
+    planNextMove();
+  } else if (scan_step == 0) {
+    scan_increment = 1;
+    planNextMove();
+  }
+}
+
+void planNextMove()
+{
+  // Find the largest distance
+  float largest_range = 0.0;
+  int largest_step = -1;
+
+  for (int i = 0; i < MAX_SCAN_STEPS; i++) {
+    if (search_range[i] > largest_range) {
+      largest_step = i;
+      largest_range = search_range[i];
+    }
+  }
+
+  if ( largest_step > -1) {
+    // We have a winner, let's point that way and go forward
+    switch (largest_step)
+    {
+      case 0:
+        // Turn hard left
+        processCommand('L');
+        delay(600);
+        processCommand('F');
+        break;
+      case 1:
+        // Turn slight left
+        processCommand('L');
+        delay(300);
+        processCommand('F');
+        break;
+      case 2:
+        // it is the way we are going, 
+        // so just do collision avoidance
+        avoidCollision(largest_range);
+        break;
+      case 3:
+        // Turn slight right
+        processCommand('R');
+        delay(300);
+        processCommand('F');
+        break;
+      case 4:
+        // Turn hard right
+        processCommand('R');
+        delay(600);
+        processCommand('F');
+        break;
+    }
+  } else {
+    // We don't see anything, 
+    // pretend we are about to hit a wall
+    avoidCollision(10.0);
+    avoidCollision(1.0);
+  }
+}
+
+bool processCommand(char newCommand)
+{
   /**
      Commands from the Bluetooth app
 
@@ -181,7 +275,7 @@ bool processCommand(char newCommand) {
   {
     previous_command = newCommand;
 
-    Stop(); //initialize with motors stoped
+    Stop(); //initialize with motors stopped
 
     switch (newCommand)
     {
