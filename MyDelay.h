@@ -33,13 +33,13 @@ typedef void (*funTocall)(void);
     void stop();
 
   private:
-    unsigned long _preMills, _curMills, _delaytime;
+    unsigned long _preMills, _curMills, _delaytime = 0L;
     int _initialRepeatCount = MYDELAY_REPEAT_FOREVER;
     int _currentRepeatCount = 0;
     funTocall _funcall;
     bool _useFunction = false;
     bool _running = false;
-    bool _repeating = true;
+    bool _repeating = false;
 };
 
 #endif
