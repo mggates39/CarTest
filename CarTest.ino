@@ -95,9 +95,10 @@ void setup()
   // turn on servo
   servo1.attach(SERVO_1_PIN);
 
-  current_motor_speed = MAX_MOTOR_SPEED;
+  current_motor_speed = SLOW_MOTOR_SPEED;
 
-  // set unknown servo position
+  // set unknown servo position so the first
+  // positioning attempt will always fire
   servo_position = -1;
   setServoPosition(SERVO_MIN_POSITION);
   setServoPosition(SERVO_MAX_POSITION);
@@ -115,29 +116,33 @@ void loop()
     sonar_mode = true;
   }
 
-  if (sonar_mode == false) {
-    if (Serial.available() > 0) {
-      // Get the command and process it
-      command = Serial.read();
+  if (Serial.available() > 0) {
+    // Get the command and process it
+    command = Serial.read();
 
-      if (processCommand(command)) {
-        // Restart the timer since we have a
-        // command that is causing the car to move
-        blueToothFailTimer.start();
-      } else {
-        // The command stopped the vehicle
-        // do not allow sonar to take over
-        blueToothFailTimer.stop();
-        sonar_mode = false;
-      }
+    if (processCommand(command)) {
+      // Restart the timer since we have a
+      // command that is causing the car to move
+      blueToothFailTimer.start();
+    } else {
+      // The command stopped the vehicle
+      // do not allow sonar to take over
+      blueToothFailTimer.stop();
+      sonar_mode = false;
     }
+  }
+
+  if (sonar_mode == false) {
     testForCollisionOnBlueTooth();
   } else {
     scanAhead();
   }
 
 }
-
+/**
+   This is the way we know we are using bluetooth
+   the sonar will just point straight ahead
+*/
 void testForCollisionOnBlueTooth()
 {
   faceForward();
@@ -147,10 +152,10 @@ void testForCollisionOnBlueTooth()
 }
 
 /**
- * If we are far away from something, go full speed
-   If we start getting close to something, slow down
-   If we get Real close backup turn to the side and start moving forward
-   otherwise, speed back up.
+   If we are far away from something, go full speed
+   else If we start getting close to something, slow down
+   else we getting Real close, backup turn to the side
+   and start moving forward again
 */
 void avoidCollision(float distance)
 {
@@ -168,6 +173,13 @@ void avoidCollision(float distance)
 
 }
 
+/**
+   This is called every time through the main loop.
+   Each time it scans in the next direction
+   and records the distance in an array of ranges
+   when it gets to the end of the array, it calls the
+   the function to plan the next move
+*/
 void scanAhead()
 {
   setServoPosition(search_positions[scan_step]);
@@ -183,6 +195,10 @@ void scanAhead()
   }
 }
 
+/**
+   Go through the array of ranges and find the largest one
+   note which element it is so we know which way to turn
+*/
 void planNextMove()
 {
   // Find the largest distance
@@ -213,7 +229,7 @@ void planNextMove()
         processCommand('F');
         break;
       case 2:
-        // it is the way we are going, 
+        // it is the way we are going,
         // so just do collision avoidance
         avoidCollision(largest_range);
         break;
@@ -231,8 +247,9 @@ void planNextMove()
         break;
     }
   } else {
-    // We don't see anything, 
+    // We don't see anything,
     // pretend we are about to hit a wall
+    // step back, turn and start moving again
     avoidCollision(10.0);
     avoidCollision(1.0);
   }
