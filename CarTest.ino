@@ -104,7 +104,11 @@ void loop()
   if (distance < 25) {
     current_motor_speed = SLOW_MOTOR_SPEED;
   } else if (distance < 5) {
-    Stop();
+    processCommand('B');
+    delay(100);
+    processCommand('R');
+    delay(100);
+    processCommand('F');
   } else {
     current_motor_speed = MAX_MOTOR_SPEED;
   }
