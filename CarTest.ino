@@ -42,16 +42,16 @@ Servo servo1;
 // Sonar Sensor
 HCSR04 hc(TRIGGER_PIN, ECHO_PIN);
 
-// Allow for 3 seconds (3000 milliseconds)
+// Allow for 10 seconds (10000 milliseconds)
 // before taking over with sonar control
-#define FAILOVER_TIME 3000
+#define FAILOVER_TIME 10000
 
 myDelay blueToothFailTimer(FAILOVER_TIME);
 
 char command = ' ';
 char previous_command = ' ';
 
-int current_motor_speed;
+int current_motor_speed = MIN_MOTOR_SPEED;
 bool is_moving = false;
 
 int servo_position = -1;
