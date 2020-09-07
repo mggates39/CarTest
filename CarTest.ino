@@ -128,8 +128,8 @@ void loop()
       // The command stopped the vehicle
       // do not allow sonar to take over
       blueToothFailTimer.stop();
-      sonar_mode = false;
     }
+    sonar_mode = false;
   }
 
   if (sonar_mode == false) {
